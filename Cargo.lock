@@ -1,5 +1,5 @@
 [root]
-name = "sync-clipboard-rust"
+name = "sync-clipboard"
 version = "0.1.0"
 dependencies = [
  "byteorder 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
