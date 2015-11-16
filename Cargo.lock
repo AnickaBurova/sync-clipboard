@@ -1,0 +1,4 @@
+[root]
+name = "sync-clipboard-rust"
+version = "0.1.0"
+

@@ -1,0 +1,6 @@
+[package]
+name = "sync-clipboard-rust"
+version = "0.1.0"
+authors = ["Milan Buransky <milan.buransky@ims-evolve.com>"]
+
+[dependencies]
