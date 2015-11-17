@@ -18,15 +18,13 @@ struct Config {
     outsideip : String
 }
 
-// static HOST:&'static str = "127.0.0.1:24011";
-// static HOST:&'static str = "10.10.101.24:24011";
-
 
 fn run_reading(stream : &mut TcpStream,content : Sender<String>) -> Result<()>{
     loop {
         println!("Waiting for a data");
         let length : u32 = try!(stream.read_u32::<LittleEndian>());
         if length == 0{
+            // ignore empty
             continue;
         }
         println!("Got the data size: {}", length);
@@ -41,8 +39,6 @@ fn run_reading(stream : &mut TcpStream,content : Sender<String>) -> Result<()>{
                 println!("Failed to convert received content to string.");
             }
         };
-        // try!(str::from_utf8(&data));
-        // content.send(Some(other_content));
     }
 }
 
