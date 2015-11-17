@@ -1,4 +1,3 @@
-#![feature(convert)]
 extern crate clipboard;
 extern crate byteorder;
 extern crate argparse;
@@ -97,13 +96,13 @@ fn run_sync(stream : &mut TcpStream) -> Result<()>{
 }
 
 fn try_run_client(config : &Config) -> Result<()>{
-    let mut stream = try!(TcpStream::connect((config.outsideip.as_str(),config.port)));
+    let mut stream = try!(TcpStream::connect((&config.outsideip as &str,config.port)));
     run_sync(&mut stream)
 }
 
 
 fn run_server(config : &Config) -> Result<()> {
-    let listener = try!(TcpListener::bind((config.localip.as_str(),config.port)));
+    let listener = try!(TcpListener::bind((&config.localip as &str,config.port)));
 
     for stream in listener.incoming(){
         match stream{
