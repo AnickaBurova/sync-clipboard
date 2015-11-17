@@ -27,8 +27,13 @@ fn run_reading(stream : &mut TcpStream,content : Sender<String>) -> Result<()>{
             continue;
         }
         println!("Got the data size: {}", length);
-        let mut data = vec![0u8;length as usize];
+        // let mut data = vec![0u8;length as usize];
+        let mut data = vec![0u8;0];
+        println!("");
         try!(stream.take(length as u64).read_to_end(&mut data));
+        for v in data.iter(){
+            print!("{} ",v);
+        }
         match String::from_utf8(data){
             Ok(s) => {
                 println!("Received new content from the other side: {}", s);
@@ -72,6 +77,10 @@ fn run_sync(stream : &mut TcpStream) -> Result<()>{
                     println!("A new content, sending it to the other side: {}!={}",s,current_content);
                     current_content = s.clone();
                     let data = s.as_bytes();
+                    for v in data.iter(){
+                        print!("{} ",v );
+                    }
+                    println!("");
                     try!(writer.write_u32::<LittleEndian>(data.len() as u32));
                     try!(writer.write(data));
                 }
