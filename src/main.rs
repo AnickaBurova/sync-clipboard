@@ -4,12 +4,14 @@ extern crate argparse;
 
 use clipboard::ClipboardContext;
 use std::net::{TcpListener,TcpStream};
-use std::io::{Error, ErrorKind, Result, Read,Write};
+use std::io::{Error, ErrorKind, Result  };
 use std::thread;
 use byteorder::{ReadBytesExt, WriteBytesExt,  LittleEndian};
 use std::sync::mpsc::{Sender, channel};
 use std::time::Duration;
 use argparse::{ArgumentParser, Store};
+use std::io::prelude::*;
+use std::io;
 
 struct Config {
     port : u16,
@@ -67,9 +69,16 @@ fn run_sync(stream : &mut TcpStream) -> Result<()>{
 
     println!("initial clipboard value is: {}",current_content );
 
+    let mut counter = 0;
+
     loop{
         thread::sleep(Duration::new(1,0));
-        println!("Checking for new content!");
+        if counter % 64 == 0{
+            println!("");
+        }
+        counter = counter + 1;
+        print!("-");
+        io::stdout().flush().ok().expect("Could not flush stdout");
         match ctx.get_contents(){
             Ok(s) => {
 
