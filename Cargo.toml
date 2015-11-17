@@ -6,3 +6,4 @@ authors = ["Milan Buransky <milan.buransky@ims-evolve.com>"]
 [dependencies]
 clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
 byteorder = "*"
+argparse = "*"

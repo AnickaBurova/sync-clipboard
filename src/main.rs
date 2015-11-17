@@ -1,23 +1,34 @@
+#![feature(convert)]
 extern crate clipboard;
 extern crate byteorder;
+extern crate argparse;
 
 use clipboard::ClipboardContext;
 use std::net::{TcpListener,TcpStream};
 use std::io::{Error, ErrorKind, Result, Read,Write};
 use std::thread;
 use byteorder::{ReadBytesExt, WriteBytesExt,  LittleEndian};
-use std::sync::mpsc::{Sender, Receiver,channel};
-use std::str;
+use std::sync::mpsc::{Sender, channel};
 use std::time::Duration;
+use argparse::{ArgumentParser, Store};
 
+struct Config {
+    port : u16,
+    localip : String,
+    outsideip : String
+}
 
-static HOST:&'static str = "127.0.0.1:24011";
+// static HOST:&'static str = "127.0.0.1:24011";
+// static HOST:&'static str = "10.10.101.24:24011";
 
 
 fn run_reading(stream : &mut TcpStream,content : Sender<String>) -> Result<()>{
     loop {
         println!("Waiting for a data");
         let length : u32 = try!(stream.read_u32::<LittleEndian>());
+        if length == 0{
+            continue;
+        }
         println!("Got the data size: {}", length);
         let mut data = vec![0u8;length as usize];
         try!(stream.take(length as u64).read_to_end(&mut data));
@@ -89,14 +100,14 @@ fn run_sync(stream : &mut TcpStream) -> Result<()>{
     }
 }
 
-fn try_run_client() -> Result<()>{
-    let mut stream = try!(TcpStream::connect(&HOST));
+fn try_run_client(config : &Config) -> Result<()>{
+    let mut stream = try!(TcpStream::connect((config.outsideip.as_str(),config.port)));
     run_sync(&mut stream)
 }
 
 
-fn run_server() -> Result<()> {
-    let listener = try!(TcpListener::bind(HOST));
+fn run_server(config : &Config) -> Result<()> {
+    let listener = try!(TcpListener::bind((config.localip.as_str(),config.port)));
 
     for stream in listener.incoming(){
         match stream{
@@ -119,10 +130,27 @@ fn run_server() -> Result<()> {
 
 
 fn main() {
-    let res = match try_run_client(){
+    let mut config = Config{
+        port: 24011,
+        localip : "127.0.0.1".to_owned(),
+        outsideip : "127.0.0.1".to_owned()
+    };
+    {
+        let mut ap = ArgumentParser::new();
+        ap.set_description("Synchronise clipboard content between two computers.");
+        ap.refer(&mut config.port)
+            .add_option(&["-p","--port"],Store,"Port address");
+        ap.refer(&mut config.localip)
+            .add_option(&["-l","--local"],Store,"Local ip address");
+        ap.refer(&mut config.outsideip)
+            .add_option(&["-o","--outside"],Store,"Outside ip address");
+        ap.parse_args_or_exit();
+    }
+    println!("local: {}, outside: {}, port: {}",config.localip, config.outsideip, config.port );
+    let res = match try_run_client(&config){
         Err(_) => {
             println!("Could not connect to server, creating own.");
-            run_server()},
+            run_server(&config)},
         _ => Ok(())
     };
 
@@ -130,9 +158,4 @@ fn main() {
         Ok(_) => println!("done"),
         Err(e) => println!("Failed: {}", e),
     }
-
-    // let mut ctx = ClipboardContext::new().unwrap();
-    // println!("{}", ctx.get_contents().unwrap());
-    //
-    // ctx.set_contents("the new content".to_owned()).unwrap();
 }
