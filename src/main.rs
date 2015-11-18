@@ -9,11 +9,12 @@ use std::thread;
 use byteorder::{ReadBytesExt, WriteBytesExt,  LittleEndian};
 use std::sync::mpsc::{Sender, channel};
 use std::time::Duration;
-use argparse::{ArgumentParser, Store};
+use argparse::{ArgumentParser, Store,StoreTrue};
 use std::io::prelude::*;
 use std::io;
 
 struct Config {
+    skip_client : bool,
     port : u16,
     localip : String,
     outsideip : String
@@ -114,13 +115,16 @@ fn run_sync(stream : &mut TcpStream) -> Result<()>{
 }
 
 fn try_run_client(config : &Config) -> Result<()>{
+    println!("Trying to connect to {}:{}",config.outsideip, config.port );
     let mut stream = try!(TcpStream::connect((&config.outsideip as &str,config.port)));
     run_sync(&mut stream)
 }
 
 
 fn run_server(config : &Config) -> Result<()> {
+    println!("Creating server on {}:{}" , config.localip,config.port );
     let listener = try!(TcpListener::bind((&config.localip as &str,config.port)));
+    println!("Waiting for new connections");
 
     for stream in listener.incoming(){
         match stream{
@@ -144,6 +148,7 @@ fn run_server(config : &Config) -> Result<()> {
 
 fn main() {
     let mut config = Config{
+        skip_client : false,
         port: 24011,
         localip : "127.0.0.1".to_owned(),
         outsideip : "127.0.0.1".to_owned()
@@ -151,6 +156,8 @@ fn main() {
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("Synchronise clipboard content between two computers.");
+        ap.refer(&mut config.skip_client)
+            .add_option(&["-s","--skip_client"],StoreTrue,"Skip connecting to client and create server right away.");
         ap.refer(&mut config.port)
             .add_option(&["-p","--port"],Store,"Port address");
         ap.refer(&mut config.localip)
@@ -160,15 +167,13 @@ fn main() {
         ap.parse_args_or_exit();
     }
     println!("local: {}, outside: {}, port: {}",config.localip, config.outsideip, config.port );
-    let res = match try_run_client(&config){
+    let _ = if config.skip_client{
+        println!("Skiping connecting to client");
+        run_server(&config)
+    }else {match try_run_client(&config){
         Err(_) => {
             println!("Could not connect to server, creating own.");
             run_server(&config)},
         _ => Ok(())
-    };
-
-    match res {
-        Ok(_) => println!("done"),
-        Err(e) => println!("Failed: {}", e),
-    }
+    }};
 }
