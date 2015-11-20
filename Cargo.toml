@@ -1,9 +1,10 @@
 [package]
 name = "sync-clipboard"
 version = "0.1.0"
-authors = ["Milan Buransky <milan.buransky@ims-evolve.com>"]
+authors = ["Milan Buransky <anicka.burova@gmail.com>"]
 
 [dependencies]
 clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
 byteorder = "*"
 argparse = "*"
+encoding = "*"

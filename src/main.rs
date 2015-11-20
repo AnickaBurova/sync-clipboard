@@ -1,6 +1,7 @@
 extern crate clipboard;
 extern crate byteorder;
 extern crate argparse;
+extern crate encoding;
 
 use clipboard::ClipboardContext;
 use std::net::{TcpListener,TcpStream};
@@ -12,6 +13,9 @@ use std::time::Duration;
 use argparse::{ArgumentParser, Store,StoreTrue};
 use std::io::prelude::*;
 use std::io;
+
+use encoding::{Encoding, EncoderTrap, DecoderTrap,CodecError};
+use encoding::all::ISO_8859_1;
 
 struct Config {
     skip_client : bool,
@@ -37,17 +41,14 @@ fn run_reading(stream : &mut TcpStream,content : Sender<String>) -> Result<()>{
         for v in data.iter(){
             print!("{} ",v);
         }
-        match String::from_utf8(data){
-            Ok(s) => {
-                println!("Received new content from the other side: {}", s);
-                let _ = content.send(s);
-            }
-            Err(_) => {
-                println!("Failed to convert received content to string.");
-            }
+        let decoded = match ISO_8859_1.decode(&data[..],DecoderTrap::Strict){
+            Ok(s) => s,
+            Err(_) => "Error decoding".to_owned()
         };
+        let _ = content.send(decoded);
     }
 }
+
 
 fn run_sync(stream : &mut TcpStream) -> Result<()>{
     let mut ctx = match ClipboardContext::new(){
@@ -86,13 +87,17 @@ fn run_sync(stream : &mut TcpStream) -> Result<()>{
                 if s != current_content{
                     println!("A new content, sending it to the other side: {}!={}",s,current_content);
                     current_content = s.clone();
-                    let data = s.as_bytes();
+                    let data = match ISO_8859_1.encode(&s[..],EncoderTrap::Strict){
+                        Ok(d) => d,
+                        Err(e) => {
+                            println!("{}", e);vec!()}
+                    };
                     for v in data.iter(){
                         print!("{} ",v );
                     }
                     println!("");
                     try!(writer.write_u32::<LittleEndian>(data.len() as u32));
-                    try!(writer.write(data));
+                    try!(writer.write(&data[..]));
                 }
                 match rx.try_recv(){
                     Ok(v) =>{
@@ -100,8 +105,8 @@ fn run_sync(stream : &mut TcpStream) -> Result<()>{
                         if v != current_content{
                             current_content = v.clone();
                             match ctx.set_contents(v){
-                                Ok(_) => println!("Seting the new value as clipboard content."),
-                                Err(_) => println!("Failde to set the new value as clipboard content.")
+                                Ok(_) => println!("The new content has been set."),
+                                Err(_) => println!("Failed to set the new content.")
                             }
                         }
                     }
